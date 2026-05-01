@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Orbix — Global Market Simulator</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0e14;--bg2:#111720;--bg3:#161e2a;
+  --border:rgba(255,255,255,.08);--border2:rgba(255,255,255,.18);
+  --accent:#00e5a0;--red:#ef5350;--green:#26a69a;
+  --yellow:#ffd166;--text:#e8edf5;--muted:#6b7a8d;
+  --mono:'Space Mono',monospace;--sans:'Syne',sans-serif;--radius:12px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,229,160,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,160,.025) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+
+/* MODAL */
+#modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);backdrop-filter:blur(8px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1.5rem;}
+.modal-box{background:#111720;border:1px solid rgba(255,255,255,.12);border-radius:16px;max-width:480px;width:100%;padding:2rem;}
+.modal-logo{display:flex;align-items:center;gap:10px;margin-bottom:1.25rem;}
+.modal-mark{width:32px;height:32px;border:2px solid #00e5a0;border-radius:7px;display:flex;align-items:center;justify-content:center;font-family:monospace;font-size:10px;color:#00e5a0;font-weight:700;flex-shrink:0;}
+.modal-title{font-size:17px;font-weight:800;color:#e8edf5;}
+.modal-sub{font-size:10px;color:#6b7a8d;font-family:monospace;text-transform:uppercase;letter-spacing:.06em;}
+.modal-intro{font-size:13px;color:rgba(232,237,245,.75);line-height:1.7;margin-bottom:1.25rem;}
+.modal-legal{background:#0a0e14;border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:1rem 1.1rem;margin-bottom:1.25rem;font-size:12px;color:rgba(232,237,245,.5);line-height:1.9;font-family:monospace;}
+.modal-check{display:flex;align-items:center;gap:10px;margin-bottom:1.25rem;cursor:pointer;}
+#chk-box{width:18px;height:18px;border:1.5px solid #6b7a8d;border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.modal-check span{font-size:12px;color:rgba(232,237,245,.65);font-family:monospace;}
+#accept-btn{width:100%;padding:11px;background:#6b7a8d;color:#000;border:none;border-radius:8px;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:not-allowed;transition:background .2s;}
+
+/* LAYOUT */
+.app{position:relative;z-index:1;max-width:1140px;margin:0 auto;padding:0 1.5rem 4rem;}
+
+/* TOP BAR */
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:1.25rem 0 1rem;border-bottom:1px solid var(--border);margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;position:relative;z-index:10;}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-mark{width:34px;height:34px;border:2px solid var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;color:var(--accent);font-weight:700;}
+.logo-text{font-size:17px;font-weight:800;letter-spacing:-.02em;}
+.logo-sub{font-size:10px;color:var(--muted);font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase;}
+.topbar-right{display:flex;align-items:center;gap:12px;}
+.week-badge{font-family:var(--mono);font-size:12px;color:var(--muted);background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:5px 13px;}
+.week-badge span{color:var(--accent);font-weight:700;}
+.btn-next{background:var(--accent);color:#000;border:none;border-radius:8px;padding:7px 18px;font-family:var(--sans);font-size:13px;font-weight:700;cursor:pointer;transition:opacity .15s;}
+.btn-next:hover{opacity:.85;}
+
+/* NAV TABS */
+.nav-tabs{display:flex;gap:4px;margin-bottom:1.5rem;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:4px;}
+.nav-tab{flex:1;text-align:center;padding:8px 0;font-size:13px;font-weight:700;border-radius:7px;cursor:pointer;color:var(--muted);transition:all .15s;border:none;background:transparent;font-family:var(--sans);}
+.nav-tab.active{background:var(--bg3);color:var(--text);border:1px solid var(--border);}
+.nav-tab:hover:not(.active){color:var(--text);}
+
+/* SECTIONS */
+.section{display:none;}
+.section.active{display:block;}
+
+/* STAT CARDS */
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:1.5rem;}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.25rem;position:relative;overflow:hidden;}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent);opacity:.4;}
+.stat-card:nth-child(2)::before{background:#0af;}
+.stat-card:nth-child(3)::before{background:var(--yellow);}
+.stat-label{font-size:11px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;}
+.stat-val{font-size:22px;font-weight:800;font-family:var(--mono);color:var(--text);}
+.stat-val.up{color:var(--green);}
+.stat-val.down{color:var(--red);}
+
+/* SEC LABEL */
+.sec-label{font-size:10px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.sec-label::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* EVENT */
+.event-box{background:rgba(255,209,102,.05);border:1px solid rgba(255,209,102,.2);border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:1.5rem;display:none;animation:slideIn .3s ease;}
+.event-box.show{display:block;}
+.event-box.extreme{background:rgba(239,83,80,.08);border-color:rgba(239,83,80,.35);}
+.event-box.extreme .event-tag,.event-box.extreme .event-title{color:#ef5350;}
+.event-box.rare{background:rgba(147,112,219,.08);border-color:rgba(147,112,219,.35);}
+.event-box.rare .event-tag,.event-box.rare .event-title{color:#9370db;}
+@keyframes slideIn{from{opacity:0;transform:translateY(-8px);}to{opacity:1;transform:translateY(0);}}
+.event-tag{font-size:10px;font-family:var(--mono);color:var(--yellow);text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px;}
+.event-title{font-size:14px;font-weight:700;color:var(--yellow);margin-bottom:3px;}
+.event-text{font-size:12px;color:rgba(232,237,245,.65);line-height:1.5;}
+
+/* HOME GRID */
+.home-grid{display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start;}
+.home-left{display:flex;flex-direction:column;gap:16px;}
+.home-right{display:flex;flex-direction:column;gap:16px;}
+
+/* FEATURED COMPANY (home) */
+.featured-panel{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;}
+.featured-empty{text-align:center;padding:2.5rem 1rem;color:var(--muted);font-size:13px;font-family:var(--mono);}
+.featured-empty strong{display:block;font-size:15px;color:var(--text);margin-bottom:6px;}
+.chart-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;flex-wrap:wrap;gap:8px;}
+.chart-company{font-size:14px;font-weight:700;color:var(--text);}
+.chart-ohlc{font-family:var(--mono);font-size:11px;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap;margin-top:4px;}
+.chart-ohlc span span{color:var(--text);}
+.chart-price{font-family:var(--mono);font-size:20px;font-weight:700;text-align:right;}
+.chart-price.up{color:var(--green);}
+.chart-price.down{color:var(--red);}
+.chart-pct{font-family:var(--mono);font-size:11px;font-weight:700;text-align:right;}
+.chart-pct.up{color:var(--green);}
+.chart-pct.down{color:var(--red);}
+.canvas-wrap{position:relative;height:200px;}
+.canvas-wrap canvas{position:absolute;top:0;left:0;}
+
+/* TRADE */
+.trade-panel{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-top:12px;}
+.trade-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;}
+.trade-label{font-size:12px;color:var(--muted);font-family:var(--mono);min-width:60px;}
+.qty-input{background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:13px;padding:6px 10px;width:80px;outline:none;transition:border-color .15s;}
+.qty-input:focus{border-color:var(--accent);}
+.btn-buy{background:var(--green);color:#fff;border:none;border-radius:8px;padding:7px 18px;font-family:var(--sans);font-size:12px;font-weight:700;cursor:pointer;transition:opacity .15s;}
+.btn-sell{background:var(--red);color:#fff;border:none;border-radius:8px;padding:7px 18px;font-family:var(--sans);font-size:12px;font-weight:700;cursor:pointer;transition:opacity .15s;}
+.btn-buy:hover,.btn-sell:hover{opacity:.85;}
+.trade-msg{font-size:11px;font-family:var(--mono);min-height:16px;color:var(--muted);}
+.trade-msg.ok{color:var(--green);}
+.trade-msg.err{color:var(--red);}
+
+/* TOP 3 */
+.top3-grid{display:flex;flex-direction:column;gap:8px;}
+.top3-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:.75rem 1rem;display:flex;align-items:center;gap:12px;}
+.top3-rank{font-family:var(--mono);font-size:11px;color:var(--muted);min-width:16px;}
+.top3-logo{width:28px;height:28px;border-radius:6px;object-fit:contain;background:#fff;padding:2px;}
+.top3-logo-fallback{width:28px;height:28px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted);font-family:var(--mono);flex-shrink:0;}
+.top3-info{flex:1;}
+.top3-name{font-size:13px;font-weight:700;color:var(--text);}
+.top3-country{font-size:10px;color:var(--muted);}
+.top3-badge{font-family:var(--mono);font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;background:rgba(38,166,154,.15);color:var(--green);}
+
+/* INDEX */
+.index-wrap{position:relative;height:120px;}
+
+/* PORTFOLIO TABLE */
+.port-table{width:100%;border-collapse:collapse;font-size:12px;}
+.port-table th{text-align:left;color:var(--muted);font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.06em;padding:0 0 8px;border-bottom:1px solid var(--border);font-weight:400;}
+.port-table td{padding:8px 0;border-bottom:1px solid var(--border);color:var(--text);font-family:var(--mono);vertical-align:middle;}
+.port-table td:first-child{font-family:var(--sans);font-size:12px;font-weight:500;}
+.gain-up{color:var(--green);}
+.gain-dn{color:var(--red);}
+.empty-port{text-align:center;padding:24px 0;color:var(--muted);font-size:12px;font-family:var(--mono);}
+
+/* SEARCH */
+.search-wrap{position:relative;margin-bottom:1rem;}
+.search-input{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:var(--mono);font-size:13px;padding:10px 14px 10px 38px;outline:none;transition:border-color .15s;}
+.search-input:focus{border-color:var(--accent);}
+.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;}
+
+/* COMPANIES GRID */
+.companies-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;}
+.co-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:.875rem 1rem;cursor:pointer;transition:border-color .15s,background .15s;position:relative;}
+.co-card:hover{border-color:var(--border2);background:var(--bg3);}
+.co-card.selected{border-color:var(--accent);background:rgba(0,229,160,.04);}
+.co-top{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.co-logo{width:32px;height:32px;border-radius:7px;object-fit:contain;background:#fff;padding:2px;flex-shrink:0;}
+.co-logo-fb{width:32px;height:32px;border-radius:7px;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted);font-family:var(--mono);flex-shrink:0;}
+.co-name{font-size:13px;font-weight:700;color:var(--text);line-height:1.2;}
+.co-ticker{font-family:var(--mono);font-size:10px;color:var(--muted);}
+.co-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.co-country{font-size:11px;color:var(--muted);}
+.badge{font-family:var(--mono);font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;}
+.badge.up{background:rgba(38,166,154,.15);color:var(--green);}
+.badge.down{background:rgba(239,83,80,.15);color:var(--red);}
+.badge.flat{background:rgba(107,122,141,.15);color:var(--muted);}
+.co-price{font-family:var(--mono);font-size:15px;font-weight:700;}
+.co-price.up{color:var(--green);}
+.co-price.down{color:var(--red);}
+.co-actions{display:flex;gap:6px;margin-top:8px;}
+.btn-star{background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:13px;padding:4px 8px;cursor:pointer;transition:all .15s;}
+.btn-star.starred{border-color:var(--yellow);color:var(--yellow);}
+.btn-view{background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:11px;font-family:var(--sans);font-weight:600;padding:4px 10px;cursor:pointer;transition:all .15s;flex:1;}
+.btn-view:hover{border-color:var(--border2);}
+
+/* COMPANY DETAIL PANEL */
+.co-detail{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-top:12px;display:none;}
+.co-detail.show{display:block;}
+
+@media(max-width:820px){
+  .home-grid{grid-template-columns:1fr;}
+  .stats-row{grid-template-columns:1fr;}
+  .companies-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));}
+}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+</head>
+<body>
+
+<!-- MODAL -->
+<!-- AUTH OVERLAY -->
+<div id="auth-overlay" style="position:fixed;inset:0;background:#0a0e14;z-index:99999;display:flex;align-items:center;justify-content:center;padding:1.5rem;">
+  <div style="background:#111720;border:1px solid rgba(255,255,255,.12);border-radius:16px;max-width:420px;width:100%;padding:2rem;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:1.75rem;">
+      <div style="width:34px;height:34px;border:2px solid #00e5a0;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:monospace;font-size:12px;color:#00e5a0;font-weight:700;flex-shrink:0;">O</div>
+      <div>
+        <div style="font-size:18px;font-weight:800;color:#e8edf5;letter-spacing:-.02em;">Orbix</div>
+        <div style="font-size:10px;color:#6b7a8d;font-family:monospace;text-transform:uppercase;letter-spacing:.06em;">Global Market Simulator</div>
+      </div>
+    </div>
+
+    <!-- TABS -->
+    <div style="display:flex;gap:4px;background:#0a0e14;border-radius:8px;padding:4px;margin-bottom:1.5rem;">
+      <button id="tab-login" onclick="switchTab('login')" style="flex:1;padding:7px;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;border:none;border-radius:6px;cursor:pointer;background:#161e2a;color:#e8edf5;">Iniciar sesión</button>
+      <button id="tab-register" onclick="switchTab('register')" style="flex:1;padding:7px;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;border:none;border-radius:6px;cursor:pointer;background:transparent;color:#6b7a8d;">Registrarse</button>
+    </div>
+
+    <!-- FORM -->
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div id="name-field" style="display:none;">
+        <label style="font-size:11px;color:#6b7a8d;font-family:monospace;text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:6px;">Nombre</label>
+        <input id="auth-name" type="text" placeholder="Tu nombre" style="width:100%;background:#0a0e14;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#e8edf5;font-family:monospace;font-size:13px;padding:10px 14px;outline:none;">
+      </div>
+      <div>
+        <label style="font-size:11px;color:#6b7a8d;font-family:monospace;text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:6px;">Usuario</label>
+        <input id="auth-user" type="text" placeholder="tu_usuario" style="width:100%;background:#0a0e14;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#e8edf5;font-family:monospace;font-size:13px;padding:10px 14px;outline:none;">
+      </div>
+      <div>
+        <label style="font-size:11px;color:#6b7a8d;font-family:monospace;text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:6px;">Contraseña</label>
+        <input id="auth-pass" type="password" placeholder="••••••••" style="width:100%;background:#0a0e14;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#e8edf5;font-family:monospace;font-size:13px;padding:10px 14px;outline:none;">
+      </div>
+      <div id="auth-error" style="font-size:12px;color:#ef5350;font-family:monospace;min-height:16px;"></div>
+      <button id="auth-btn" onclick="authAction()" style="width:100%;padding:11px;background:#00e5a0;color:#000;border:none;border-radius:8px;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;margin-top:4px;">Iniciar sesión</button>
+    </div>
+
+    <!-- USERS LIST (dev helper) -->
+    <div id="users-hint" style="margin-top:1.25rem;padding:.875rem 1rem;background:#0a0e14;border-radius:8px;border:1px solid rgba(255,255,255,.06);">
+      <div style="font-size:10px;color:#6b7a8d;font-family:monospace;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Cuentas registradas</div>
+      <div id="users-list" style="font-size:12px;color:#6b7a8d;font-family:monospace;">Ninguna aún</div>
+    </div>
+  </div>
+</div>
+
+<div id="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-logo">
+      <div class="modal-mark">B</div>
+      <div>
+        <div class="modal-title">Orbix</div>
+        <div class="modal-sub">Global Market Simulator</div>
+      </div>
+    </div>
+    <div class="modal-intro">Bienvenido a <strong>Orbix</strong>, un global stock market simulator.<br><br>Antes de continuar, lee y acepta lo siguiente:</div>
+    <div class="modal-legal">
+      <span style="color:#ffd166;font-weight:700">⚠ AVISO LEGAL</span><br><br>
+      • Este simulador es exclusivamente <strong style="color:#e8edf5">educativo y de entretenimiento.</strong><br>
+      • Los precios son <strong style="color:#e8edf5">ficticios y generados aleatoriamente.</strong> No reflejan valores reales del mercado.<br>
+      • Las empresas mencionadas (Apple, Tesla, etc.) son <strong style="color:#e8edf5">marcas registradas de sus respectivos dueños.</strong><br>
+      • Nada en este simulador constituye <strong style="color:#e8edf5">asesoría financiera real.</strong><br>
+      • El dinero usado es <strong style="color:#e8edf5">virtual y no tiene valor real.</strong>
+    </div>
+    <div class="modal-check" onclick="toggleCheck()">
+      <div id="chk-box"></div>
+      <span>He leído y acepto los términos anteriores</span>
+    </div>
+    <button id="accept-btn" onclick="acceptModal()" disabled>Aceptar y jugar</button>
+  </div>
+</div>
+
+<div class="app">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="logo">
+      <div class="logo-mark">B</div>
+      <div>
+        <div class="logo-text">Orbix</div>
+        <div class="logo-sub">Global Market Simulator</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div id="user-badge" style="font-family:monospace;font-size:12px;color:#00e5a0;background:#0a0e14;border:1px solid rgba(0,229,160,.3);border-radius:20px;padding:5px 13px;"></div>
+      <button onclick="logoutUser()" style="font-family:monospace;font-size:11px;color:#ef5350;background:rgba(239,83,80,.1);border:1px solid rgba(239,83,80,.3);border-radius:20px;padding:5px 12px;cursor:pointer;position:relative;z-index:10;">⏻ Salir</button>
+      <div class="week-badge">Semana <span id="week-num">1</span></div>
+      <button class="btn-next" onclick="nextWeek()">Siguiente semana ›</button>
+    </div>
+  </div>
+
+  <!-- NAV -->
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showSection('home')">🏠 Home</button>
+    <button class="nav-tab" onclick="showSection('empresas')">📈 Empresas</button>
+    <button class="nav-tab" onclick="showSection('portafolio')">💼 Portafolio</button>
+  </div>
+
+  <!-- EVENT -->
+  <div class="event-box" id="event-box">
+    <div class="event-tag">Noticia del mercado</div>
+    <div class="event-title" id="event-title"></div>
+    <div class="event-text" id="event-text"></div>
+  </div>
+
+  <!-- ══ HOME ══ -->
+  <div class="section active" id="sec-home">
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-label">Efectivo disponible</div><div class="stat-val" id="cash-disp">$5,000</div></div>
+      <div class="stat-card"><div class="stat-label">Valor portafolio</div><div class="stat-val" id="port-val">$0</div></div>
+      <div class="stat-card"><div class="stat-label">Ganancia / pérdida</div><div class="stat-val" id="pnl">$0</div></div>
+    </div>
+
+    <div class="home-grid">
+      <div class="home-left">
+        <div>
+          <div class="sec-label">Tu empresa destacada</div>
+          <div class="featured-panel" id="featured-panel">
+            <div class="featured-empty">
+              <strong>Sin empresa destacada</strong>
+              Ve a <em>Empresas</em>, elige una y presiona ⭐ para destacarla aquí.
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="home-right">
+        <div>
+          <div class="sec-label">Top 3 esta semana</div>
+          <div class="top3-grid" id="top3-grid">
+            <div style="font-size:12px;color:var(--muted);font-family:var(--mono);padding:8px 0">Avanza una semana para ver el ranking.</div>
+          </div>
+        </div>
+        <div>
+          <div class="sec-label">Tu índice personal</div>
+          <div class="index-wrap"><canvas id="index-canvas"></canvas></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ EMPRESAS ══ -->
+  <div class="section" id="sec-empresas">
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input class="search-input" type="text" id="search-input" placeholder="Buscar empresa, ticker o país..." oninput="filterCompanies()">
+    </div>
+    <div class="companies-grid" id="companies-grid"></div>
+    <div class="co-detail" id="co-detail">
+      <div class="chart-header">
+        <div>
+          <div class="chart-company" id="det-name"></div>
+          <div class="chart-ohlc">
+            <span>A: <span id="det-o">—</span></span>
+            <span>M: <span id="det-h">—</span></span>
+            <span>m: <span id="det-l">—</span></span>
+            <span>C: <span id="det-c">—</span></span>
+          </div>
+        </div>
+        <div>
+          <div class="chart-price" id="det-price">—</div>
+          <div class="chart-pct" id="det-pct">—</div>
+        </div>
+      </div>
+      <div class="canvas-wrap"><canvas id="det-canvas"></canvas></div>
+      <div class="trade-panel">
+        <div class="trade-row">
+          <span class="trade-label">Cantidad</span>
+          <input class="qty-input" type="number" id="qty-det" min="1" value="1">
+          <button class="btn-buy" onclick="tradeAction('buy','det')">Comprar</button>
+          <button class="btn-sell" onclick="tradeAction('sell','det')">Vender</button>
+        </div>
+        <div class="trade-msg" id="msg-det"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PORTAFOLIO ══ -->
+  <div class="section" id="sec-portafolio">
+    <div style="display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start;">
+      <div>
+        <div class="sec-label">Mis posiciones</div>
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;">
+          <table class="port-table">
+            <thead><tr><th>Empresa</th><th>Acc.</th><th>Costo</th><th>Precio</th><th>G/P</th></tr></thead>
+            <tbody id="port-body"><tr><td colspan="5"><div class="empty-port">— sin posiciones —</div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <div>
+        <div class="sec-label">Índice personal</div>
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;">
+          <div class="index-wrap"><canvas id="index-canvas-2"></canvas></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<script>
+/* ══ DATA ══ */
+const INITIAL_CASH = 5000;
+
+const COMPANIES = [
+  // EE.UU.
+  {id:'AAPL',name:'Apple',          country:'🇺🇸 EE.UU.',sector:'Tecnología',       domain:'apple.com',        base:182,vol:.06,buffs:['Tecnología','Consumo'],nerfs:['Guerra Comercial China','Escasez Chips'],candles:[]},
+  {id:'TSLA',name:'Tesla',          country:'🇺🇸 EE.UU.',sector:'Automotriz',        domain:'tesla.com',        base:245,vol:.12,buffs:['Energía Verde','Boom Automotriz'],nerfs:['Competencia China','Alza Materiales'],candles:[]},
+  {id:'MSFT',name:'Microsoft',      country:'🇺🇸 EE.UU.',sector:'Tecnología',       domain:'microsoft.com',    base:415,vol:.05,buffs:['Tecnología','IA Global'],nerfs:['Regulación Tech','Recesión'],candles:[]},
+  {id:'GOOGL',name:'Google',        country:'🇺🇸 EE.UU.',sector:'Tecnología',       domain:'google.com',       base:175,vol:.06,buffs:['Tecnología','Publicidad Digital'],nerfs:['Regulación Antimonopolio','Recesión'],candles:[]},
+  {id:'AMZN',name:'Amazon',         country:'🇺🇸 EE.UU.',sector:'E-commerce',       domain:'amazon.com',       base:190,vol:.07,buffs:['Consumo','Boom Navideño'],nerfs:['Huelga Trabajadores','Regulación'],candles:[]},
+  {id:'META',name:'Meta',           country:'🇺🇸 EE.UU.',sector:'Redes Sociales',   domain:'meta.com',         base:510,vol:.09,buffs:['Publicidad Digital','IA Global'],nerfs:['Escándalo Privacidad','Regulación Tech'],candles:[]},
+  {id:'NVDA',name:'Nvidia',         country:'🇺🇸 EE.UU.',sector:'Semiconductores',  domain:'nvidia.com',       base:875,vol:.11,buffs:['IA Global','Boom Tech'],nerfs:['Escasez Chips','Guerra Comercial China'],candles:[]},
+  {id:'KO',  name:'Coca-Cola',      country:'🇺🇸 EE.UU.',sector:'Bebidas',          domain:'coca-cola.com',    base:62, vol:.03,buffs:['Verano','Eventos Deportivos'],nerfs:['Impuesto Azúcar','Inflación'],candles:[]},
+  {id:'MCD', name:'McDonalds',    country:'🇺🇸 EE.UU.',sector:'Comida Rápida',    domain:'mcdonalds.com',    base:298,vol:.04,buffs:['Consumo','Boom Navideño'],nerfs:['Escándalo Alimenticio','Alza Materiales'],candles:[]},
+  {id:'DIS', name:'Disney',         country:'🇺🇸 EE.UU.',sector:'Entretenimiento',  domain:'disney.com',       base:113,vol:.07,buffs:['Estreno Marvel','Verano'],nerfs:['Huelga Actores','Recesión'],candles:[]},
+  {id:'NFLX',name:'Netflix',        country:'🇺🇸 EE.UU.',sector:'Streaming',        domain:'netflix.com',      base:630,vol:.08,buffs:['Contenido Viral','Boom Streaming'],nerfs:['Competencia Streaming','Recesión'],candles:[]},
+  {id:'V',   name:'Visa',           country:'🇺🇸 EE.UU.',sector:'Finanzas',         domain:'visa.com',         base:278,vol:.04,buffs:['Boom Consumo','Expansion Global'],nerfs:['Crisis Financiera','Cripto Auge'],candles:[]},
+  {id:'JPM', name:'JPMorgan',       country:'🇺🇸 EE.UU.',sector:'Banca',            domain:'jpmorganchase.com',base:198,vol:.05,buffs:['Alza Tasas Fed','Fusión Bancaria'],nerfs:['Recesión','Crisis Financiera'],candles:[]},
+  // México
+  {id:'CEMX',name:'Cemex',          country:'🇲🇽 México',sector:'Construcción',     domain:'cemex.com',        base:98, vol:.06,buffs:['Infraestructura','Boom Construcción'],nerfs:['Recesión','Alza Petróleo'],candles:[]},
+  {id:'BIMB',name:'Bimbo',          country:'🇲🇽 México',sector:'Alimentos',        domain:'grupobimbo.com',   base:54, vol:.04,buffs:['Consumo','Exportaciones'],nerfs:['Alza Materiales','Inflación'],candles:[]},
+  {id:'GMOD',name:'Grupo Modelo',   country:'🇲🇽 México',sector:'Bebidas',          domain:'gmodelo.com',      base:176,vol:.05,buffs:['Verano','Eventos Deportivos'],nerfs:['Impuesto Alcohol','Inflación'],candles:[]},
+  // Alemania
+  {id:'VOW', name:'Volkswagen',     country:'🇩🇪 Alemania',sector:'Automotriz',     domain:'volkswagen.com',   base:138,vol:.07,buffs:['Boom Automotriz','Energía Verde'],nerfs:['Escasez Chips','Recesión Europa'],candles:[]},
+  {id:'SIE', name:'Siemens',        country:'🇩🇪 Alemania',sector:'Tecnología Industrial',domain:'siemens.com',base:175,vol:.05,buffs:['Infraestructura','Energía Verde'],nerfs:['Recesión Europa','Alza Energía'],candles:[]},
+  {id:'BAY', name:'Bayer',          country:'🇩🇪 Alemania',sector:'Farmacéutica',   domain:'bayer.com',        base:42, vol:.06,buffs:['Pandemia','Boom Salud'],nerfs:['Demanda Legal','Recesión'],candles:[]},
+  // Japón
+  {id:'TYT', name:'Toyota',         country:'🇯🇵 Japón',  sector:'Automotriz',      domain:'toyota.com',       base:225,vol:.05,buffs:['Boom Automotriz','Exportaciones Asia'],nerfs:['Yen Fuerte','Escasez Chips'],candles:[]},
+  {id:'SNY', name:'Sony',           country:'🇯🇵 Japón',  sector:'Entretenimiento', domain:'sony.com',         base:88, vol:.06,buffs:['Lanzamiento PS','Boom Gaming'],nerfs:['Yen Fuerte','Recesión Asia'],candles:[]},
+  {id:'SFT', name:'SoftBank',       country:'🇯🇵 Japón',  sector:'Tecnología',      domain:'softbank.com',     base:62, vol:.09,buffs:['IA Global','Boom Tech'],nerfs:['Recesión Asia','Crisis Startups'],candles:[]},
+  // Brasil
+  {id:'PBR', name:'Petrobras',      country:'🇧🇷 Brasil', sector:'Energía',          domain:'petrobras.com.br', base:15, vol:.08,buffs:['Alza Petróleo','Demanda Global'],nerfs:['Caída Petróleo','Inestabilidad Política'],candles:[]},
+  {id:'EMB', name:'Embraer',        country:'🇧🇷 Brasil', sector:'Aviación',         domain:'embraer.com',      base:28, vol:.07,buffs:['Boom Aviación','Exportaciones'],nerfs:['Recesión','Alza Combustible'],candles:[]},
+  {id:'NUB', name:'Nubank',         country:'🇧🇷 Brasil', sector:'Fintech',          domain:'nubank.com.br',    base:12, vol:.10,buffs:['Boom Fintech','Inclusion Financiera'],nerfs:['Alza Tasas','Crisis Financiera'],candles:[]},
+  // China
+  {id:'BABA',name:'Alibaba',        country:'🇨🇳 China',  sector:'E-commerce',       domain:'alibaba.com',      base:78, vol:.10,buffs:['Consumo China','Boom Navideño'],nerfs:['Regulación China','Guerra Comercial China'],candles:[]},
+  {id:'BYD', name:'BYD',            country:'🇨🇳 China',  sector:'Automotriz',       domain:'bydauto.com',      base:35, vol:.09,buffs:['Energía Verde','Boom Automotriz'],nerfs:['Guerra Comercial China','Aranceles'],candles:[]},
+  {id:'TCT', name:'Tencent',        country:'🇨🇳 China',  sector:'Tecnología',       domain:'tencent.com',      base:42, vol:.09,buffs:['Boom Gaming','IA Global'],nerfs:['Regulación China','Guerra Comercial China'],candles:[]},
+];
+
+const EVENTS = [
+  {title:'🤖 Boom de Inteligencia Artificial',    text:'Inversión global en IA dispara al sector tecnológico.',         tag:'IA Global',          effect:{pos:['Tecnología','Semiconductores','Fintech'],neg:[]}},
+  {title:'⚡ Alza en precio del petróleo',         text:'El crudo sube 12%. Petrobras y energéticas celebran. Aerolíneas, automotrices y consumidores sufren.', tag:'Alza Petróleo', effect:{pos:['Energía'],neg:['Automotriz','Aviación','Construcción','Comida Rápida','Alimentos']},specific:{PBR:.12,EMB:-.10,KO:-.05,MCD:-.06}},
+  {title:'🌱 Subsidios globales a energía verde',  text:'Gobiernos anuncian billones para renovables. Energías fósiles pierden terreno.',tag:'Energía Verde', effect:{pos:['Automotriz'],neg:['Energía']}},
+  {title:'📱 Lanzamiento de iPhone generación',    text:'Apple presenta su nuevo iPhone con ventas récord.',             tag:'Boom Tech',          effect:{pos:['Tecnología','Semiconductores'],neg:[]}},
+  {title:'🏦 La Fed sube tasas de interés',        text:'La Reserva Federal sube tasas 0.5 puntos. El dinero en efectivo se vuelve más atractivo. Acciones de crecimiento sufren.', tag:'Alza Tasas Fed', effect:{pos:['Banca'],neg:['Fintech','E-commerce','Tecnología','Semiconductores','Streaming','Redes Sociales']}},
+  {title:'🎄 Temporada navideña récord',           text:'Consumo global en máximos históricos esta temporada.',          tag:'Boom Navideño',      effect:{pos:['E-commerce','Comida Rápida','Entretenimiento'],neg:[]}},
+  {title:'⚔️ Guerra comercial EE.UU.–China',      text:'Nuevos aranceles entre las dos potencias sacuden los mercados.', tag:'Guerra Comercial China',effect:{pos:[],neg:['Tecnología','E-commerce','Automotriz']}},
+  {title:'🤝 Nuevo tratado comercial global',      text:'Acuerdo multilateral de libre comercio firmado.',               tag:'Exportaciones',      effect:{pos:['Alimentos','Aviación','Automotriz'],neg:[]}},
+  {title:'🏗️ Plan global de infraestructura',     text:'G7 anuncia billones en infraestructura y construcción.',        tag:'Infraestructura',    effect:{pos:['Construcción','Tecnología Industrial'],neg:[]}},
+  {title:'📉 Recesión económica leve',             text:'FMI recorta pronóstico global. Los inversores huyen hacia activos defensivos. Sectores de lujo y tecnología sufren.', tag:'Recesión', effect:{pos:['Bebidas','Alimentos'],neg:['Tecnología','Automotriz','Streaming','Aviación','Construcción','Semiconductores','Fintech']}},
+  {title:'🎮 Boom de videojuegos y streaming',     text:'Usuarios de streaming y gaming en máximos históricos.',         tag:'Boom Streaming',     effect:{pos:['Entretenimiento','Streaming','Redes Sociales'],neg:[]}},
+  {title:'🔒 Escándalo global de privacidad',      text:'Filtración masiva de datos sacude a redes sociales.',           tag:'Escándalo Privacidad',effect:{pos:[],neg:['Redes Sociales','Tecnología']}},
+  {title:'☀️ Ola de calor global récord',          text:'Calor extremo dispara consumo de bebidas y energía.',           tag:'Verano',             effect:{pos:['Bebidas','Energía'],neg:[]}},
+  {title:'✈️ Boom de aviación post-pandemia',      text:'Viajes aéreos superan niveles pre-pandemia por primera vez.',   tag:'Boom Aviación',      effect:{pos:['Aviación','Entretenimiento'],neg:[]}},
+  {title:'🤖 Regulación global de IA',             text:'Gobiernos imponen límites estrictos al desarrollo de IA.',      tag:'Regulación Tech',    effect:{pos:[],neg:['Tecnología','Semiconductores','Redes Sociales']}},
+  {title:'📊 Semana tranquila en mercados',        text:'Sin noticias relevantes. Volatilidad mínima.',                  tag:'Neutral',            effect:{pos:[],neg:[]}},
+
+  // ── EMPRESA ESPECÍFICA ──
+  {title:'🍎 Apple demandada por monopolio',text:'El Departamento de Justicia abre caso antimonopolio contra Apple. App Store bajo fuego.',tag:'Empresa: Apple',effect:{pos:[],neg:[]},specific:{AAPL:-.18,MSFT:.04,GOOGL:.03},rare:false},
+  {title:'🚗 Tesla presenta nuevo Model S barato',text:'Elon Musk revela un Tesla de $25,000 USD. Las ventas se disparan, la competencia tiembla.',tag:'Empresa: Tesla',effect:{pos:[],neg:[]},specific:{TSLA:.22,VOW:-.07,TYT:-.06,BYD:-.10},rare:false},
+  {title:'🪟 Microsoft gana contrato con el Pentágono',text:'Contrato de nube con el Pentágono por $22 mil millones. Azure en máximos históricos.',             tag:'Empresa: Microsoft', effect:{pos:['Tecnología'],neg:[]},specific:{MSFT:.15},rare:false},
+  {title:'🔍 Google pierde juicio antimonopolio',  text:'Juez federal falla en contra de Google. Posible división de la empresa en el horizonte.',              tag:'Empresa: Google',    effect:{pos:[],neg:['Tecnología','Publicidad Digital']},specific:{GOOGL:-.20},rare:false},
+  {title:'📦 Amazon Prime baja precio de membresía',text:'Amazon reduce el precio de Prime 20%. Usuarios y ventas se disparan globalmente.',                    tag:'Empresa: Amazon',   effect:{pos:['E-commerce'],neg:[]},specific:{AMZN:.12},rare:false},
+  {title:'😬 Meta suspende Instagram en Europa',   text:'Reguladores europeos ordenan suspensión temporal de Instagram por violaciones de privacidad.',          tag:'Empresa: Meta',      effect:{pos:[],neg:['Redes Sociales']},specific:{META:-.17},rare:false},
+  {title:'💚 Nvidia lanza chip 10x más rápido',    text:'El nuevo chip H200 de Nvidia supera todos los benchmarks. Demanda de IA se multiplica.',               tag:'Empresa: Nvidia',    effect:{pos:['Semiconductores','Tecnología'],neg:[]},specific:{NVDA:.25},rare:false},
+  {title:'🥤 Coca-Cola lanza bebida energética',   text:'KO entra al mercado energético con Coca-Cola Energy Plus. Ventas iniciales rompen récords.',           tag:'Empresa: Coca-Cola', effect:{pos:['Bebidas'],neg:[]},specific:{KO:.09},rare:false},
+  {title:'🍔 McDonalds escándalo de higiene',    text:'Investigacion revela problemas sanitarios en 200 sucursales. Ventas caen drasticamente.',              tag:'Empresa: McDonalds',effect:{pos:[],neg:['Comida Rápida']},specific:{MCD:-.16},rare:false},
+  {title:'🏰 Disney estrena pelicula record',text:'La nueva pelicula de Marvel recauda $2 mil millones en su primer fin de semana.',tag:'Empresa: Disney',effect:{pos:[],neg:[]},specific:{DIS:.16,NFLX:-.04},rare:false},
+  {title:'🎬 Netflix pierde 10 millones de usuarios',text:'Reporte trimestral decepciona al mercado. La competencia le pasa factura.',tag:'Empresa: Netflix',effect:{pos:[],neg:[]},specific:{NFLX:-.19,DIS:.05,TCT:.04},rare:false},
+  {title:'💳 Visa bloquea transacciones en Rusia', text:'Visa suspende operaciones en mercados sancionados. El volumen global cae pero imagen mejora.',          tag:'Empresa: Visa',      effect:{pos:[],neg:['Finanzas']},specific:{V:-.07},rare:false},
+  {title:'🏦 JPMorgan absorbe banco en quiebra',   text:'JPMorgan adquiere First Republic Bank a precio de ganga. Sus activos crecen 15% de golpe.',            tag:'Empresa: JPMorgan',  effect:{pos:['Banca'],neg:[]},specific:{JPM:.13},rare:false},
+  {title:'🏗️ Cemex gana licitación histórica',    text:'Cemex se adjudica construcción del aeropuerto más grande de Latinoamérica. Contrato de $8 mil millones.',tag:'Empresa: Cemex',    effect:{pos:['Construcción'],neg:[]},specific:{CEMX:.20},rare:false},
+  {title:'🍞 Bimbo conquista mercado asiático',    text:'Grupo Bimbo firma acuerdo para distribuir en China e India. Acceso a 3 mil millones de consumidores.',  tag:'Empresa: Bimbo',     effect:{pos:['Alimentos'],neg:[]},specific:{BIMB:.16},rare:false},
+  {title:'🍺 Grupo Modelo bate récord de exportación',text:'Corona se convierte en la cerveza más exportada del mundo por segundo año consecutivo.',            tag:'Empresa: Grupo Modelo',  effect:{pos:['Bebidas'],neg:[]},specific:{GMOD:.14},rare:false},
+  {title:'🚙 Volkswagen recorta 35,000 empleos',   text:'VW anuncia reestructura masiva ante caída de ventas de eléctricos en Europa. Mercados reaccionan mal.',tag:'Empresa: VW',        effect:{pos:[],neg:['Automotriz']},specific:{VOW:-.18},rare:false},
+  {title:'⚡ Siemens gana contrato de red eléctrica',text:'Siemens firma el mayor contrato de infraestructura eléctrica en la historia de Europa.',             tag:'Empresa: Siemens',   effect:{pos:['Tecnología Industrial'],neg:[]},specific:{SIE:.15},rare:false},
+  {title:'💊 Bayer pierde juicio del glifosato',   text:'Corte ordena a Bayer pagar $10 mil millones por daños del herbicida Roundup. Acción cae en picada.',   tag:'Empresa: Bayer',     effect:{pos:[],neg:['Farmacéutica']},specific:{BAY:-.22},rare:false},
+  {title:'🚘 Toyota lanza auto volador comercial',  text:'Toyota presenta el primer auto volador listo para producción masiva. El mundo queda atónito.',         tag:'Empresa: Toyota',    effect:{pos:['Automotriz'],neg:[]},specific:{TYT:.18},rare:false},
+  {title:'🎮 Sony vende 50M de PS6 en una semana', text:'La PS6 rompe todos los récords de consolas. Sony reporta ganancias históricas en entretenimiento.',    tag:'Empresa: Sony',      effect:{pos:['Entretenimiento'],neg:[]},specific:{SNY:.20},rare:false},
+  {title:'💸 SoftBank pierde $15B en inversiones',text:'El fondo Vision de SoftBank registra perdidas masivas tras colapso de startups clave.',tag:'Empresa: SoftBank',effect:{pos:[],neg:[]},specific:{SFT:-.24,NUB:-.08},rare:false},
+  {title:'🛢️ Petrobras descubre reserva gigante',text:'Petrobras anuncia el mayor descubrimiento de petroleo en el Atlantico Sur en 30 anos.',tag:'Empresa: Petrobras',effect:{pos:[],neg:[]},specific:{PBR:.28,TSLA:-.04,BYD:-.03},rare:false},
+  {title:'✈️ Embraer gana pedido de 500 aviones',  text:'Una aerolínea asiática ordena 500 aviones Embraer E195-E2. El mayor pedido en la historia de la empresa.',tag:'Empresa: Embraer', effect:{pos:['Aviación'],neg:[]},specific:{EMB:.22},rare:false},
+  {title:'🟣 Nubank alcanza 200M de usuarios',     text:'Nubank se convierte en el banco digital más grande del mundo por usuarios activos.',                   tag:'Empresa: Nubank',    effect:{pos:['Fintech'],neg:[]},specific:{NUB:.18},rare:false},
+  {title:'🛒 Alibaba escindida por reguladores',   text:'China obliga a Alibaba a dividirse en 6 empresas independientes. Incertidumbre total en el sector.',   tag:'Empresa: Alibaba',   effect:{pos:[],neg:['E-commerce','Tecnología']},specific:{BABA:-.21},rare:false},
+  {title:'🔋 BYD supera a Tesla en ventas globales',text:'BYD vende mas autos electricos que Tesla por primera vez en la historia.',tag:'Empresa: BYD',effect:{pos:[],neg:[]},specific:{BYD:.19,TSLA:-.15},rare:false},
+  {title:'🕹️ Tencent lanza juego con 500M usuarios',text:'El nuevo juego móvil de Tencent alcanza 500 millones de jugadores en una semana. Récord absoluto.',  tag:'Empresa: Tencent',   effect:{pos:['Entretenimiento','Redes Sociales'],neg:[]},specific:{TCT:.17},rare:false},
+
+  // ── EXTREMOS / CRISIS ──
+  {title:'💥 CRASH: Colapso del mercado global',   text:'EVENTO EXTREMO: Pánico masivo. Todos los mercados caen simultáneamente. La peor semana desde 2008.',  tag:'⚠️ CRISIS EXTREMA',  effect:{pos:[],neg:['Tecnología','Automotriz','E-commerce','Banca','Entretenimiento','Semiconductores','Streaming','Aviación','Fintech','Construcción','Redes Sociales','Bebidas','Alimentos','Comida Rápida','Farmacéutica','Energía']},specific:{},rare:true,intensity:-.22},
+  {title:'🦠 Nueva pandemia declarada',            text:'EVENTO EXTREMO: OMS declara pandemia global. Economía mundial entra en shock. Farmacéuticas al alza.', tag:'⚠️ PANDEMIA',         effect:{pos:['Farmacéutica','E-commerce','Streaming'],neg:['Aviación','Automotriz','Comida Rápida','Entretenimiento','Construcción']},specific:{BAY:.20,NFLX:.15,AMZN:.12,EMB:-.25,MCD:-.18},rare:true,intensity:.15},
+  {title:'☢️ Crisis nuclear en Asia',              text:'EVENTO EXTREMO: Incidente nuclear en Asia desata pánico global. Energía alternativa se dispara.',      tag:'⚠️ CRISIS NUCLEAR',   effect:{pos:['Energía','Farmacéutica'],neg:['Automotriz','Aviación','Tecnología','E-commerce']},specific:{},rare:true,intensity:-.20},
+  {title:'💰 Hiperinflación en mercados emergentes',text:'EVENTO EXTREMO: Inflación supera 40% en mercados clave. Empresas latinoamericanas y asiáticas sufren.',tag:'⚠️ HIPERINFLACIÓN',   effect:{pos:['Banca','Finanzas'],neg:['Alimentos','Bebidas','Comida Rápida','Construcción','Automotriz']},specific:{CEMX:-.15,BIMB:-.12,GMOD:-.10,PBR:.08},rare:true,intensity:-.15},
+  {title:'🌊 Megaterremoto destruye centro tecnológico',text:'EVENTO EXTREMO: Sismo 9.0 destruye Silicon Valley. Producción tecnológica global cae en picada.',  tag:'⚠️ DESASTRE NATURAL', effect:{pos:[],neg:['Tecnología','Semiconductores','E-commerce']},specific:{AAPL:-.15,GOOGL:-.14,MSFT:-.12,NVDA:-.18},rare:true,intensity:-.20},
+  {title:'🏦 Quiebra de banco sistémico global',   text:'EVENTO EXTREMO: Un banco G-SIB colapsa. Contagio financiero mundial. Peor que Lehman Brothers.',      tag:'⚠️ CRISIS BANCARIA',  effect:{pos:[],neg:['Banca','Finanzas','Fintech','E-commerce','Tecnología']},specific:{JPM:-.20,V:-.15,NUB:-.22},rare:true,intensity:-.18},
+
+  // ── RAROS / SORPRESA ──
+  {title:'👽 Gobierno confirma contacto extraterrestre',text:'EVENTO RARO: EE.UU. confirma comunicación con civilización alienígena. Los mercados entran en euforia irracional.',tag:'🎲 EVENTO RARO',    effect:{pos:['Tecnología','Semiconductores','Aviación'],neg:[]},specific:{},rare:true,intensity:.15},
+  {title:'🌋 Erupción volcánica bloquea rutas aéreas',text:'EVENTO RARO: Volcán islandés paraliza tráfico aéreo europeo por 3 semanas. Aviación en crisis.',     tag:'🎲 EVENTO RARO',     effect:{pos:['E-commerce','Streaming'],neg:['Aviación','Entretenimiento']},specific:{EMB:-.12},rare:true,intensity:-.12},
+  {title:'💎 Se descubre mineral revolucionario',   text:'EVENTO RARO: Nuevo mineral 100x más eficiente que el silicio descubierto en la Antártida.',            tag:'🎲 EVENTO RARO',     effect:{pos:['Semiconductores','Tecnología','Automotriz'],neg:[]},specific:{NVDA:.20,TSLA:.12,BYD:.10},rare:true,intensity:.18},
+  {title:'🎰 Crypto colapsa completamente',         text:'EVENTO RARO: Las 10 mayores criptomonedas caen a cero tras hackeo masivo. El dinero huye a la banca tradicional.',tag:'🎲 EVENTO RARO', effect:{pos:['Banca'],neg:['Fintech']},specific:{JPM:.15,V:.10,NUB:-.25,SFT:-.15},rare:true,intensity:.10},
+  {title:'🤯 CEO de empresa tech anuncia renuncia',  text:'EVENTO RARO: El CEO mas influyente de Silicon Valley renuncia de golpe. Los mercados no saben como reaccionar.',tag:'🎲 EVENTO RARO',   effect:{pos:[],neg:['Tecnología']},specific:{AAPL:-.10,MSFT:-.08,GOOGL:-.09},rare:true,intensity:-.10},
+  {title:'🌞 Fusión nuclear lograda comercialmente',text:'EVENTO RARO: Primera planta de fusión nuclear comercial en línea. Energía prácticamente gratuita en el horizonte.',tag:'🎲 EVENTO RARO', effect:{pos:['Tecnología','Automotriz'],neg:['Energía']},specific:{TSLA:.15,BYD:.12,PBR:-.18},rare:true,intensity:.12},
+  {title:'🐋 Ballena compra 5% de empresa gigante', text:'EVENTO RARO: Inversor misterioso adquiere participación masiva en empresa de primer nivel. Especulación total.',tag:'🎲 EVENTO RARO',   effect:{pos:['Finanzas','Banca'],neg:[]},specific:{},rare:true,intensity:.12},
+
+];
+
+let state = {
+  cash: INITIAL_CASH,
+  week: 1,
+  portfolio: {},
+  avgCost: {},
+  featuredId: null,
+  selectedDetId: null,
+  indexHistory: [100],
+};
+
+function genCandle(prev, vol, mod, forceDir) {
+  // forceDir: 1 = must close UP, -1 = must close DOWN, 0 = random
+  const o = prev * (1 + (Math.random() - .5) * .006);
+  let noise = (Math.random() - .48) * vol * .4; // reduced base noise
+  let move = noise + (mod || 0);
+  // If forceDir is set, ensure close respects direction
+  if (forceDir === 1 && move < 0.005) move = 0.005 + Math.random() * 0.02;
+  if (forceDir === -1 && move > -0.005) move = -0.005 - Math.random() * 0.02;
+  const c = Math.max(o * (1 + move), 0.5);
+  const h = Math.max(o, c) * (1 + Math.random() * vol * .35);
+  const l = Math.min(o, c) * (1 - Math.random() * vol * .35);
+  return { o: +o.toFixed(2), h: +h.toFixed(2), l: +l.toFixed(2), c: +c.toFixed(2) };
+}
+
+COMPANIES.forEach(c => {
+  state.portfolio[c.id] = 0;
+  state.avgCost[c.id] = 0;
+  let p = c.base;
+  for (let i = 0; i < 20; i++) { const cd = genCandle(p, c.vol, 0); c.candles.push(cd); p = cd.c; }
+});
+
+const fmt = n => '$' + Math.abs(Math.round(n)).toLocaleString('es-MX');
+const fmtN = n => Math.round(n).toLocaleString('es-MX');
+const pct = n => (n >= 0 ? '+' : '') + (n * 100).toFixed(2) + '%';
+const curPrice = c => c.candles[c.candles.length - 1].c;
+const portVal = () => COMPANIES.reduce((s, c) => s + (state.portfolio[c.id] || 0) * curPrice(c), 0);
+const totalInv = () => COMPANIES.reduce((s, c) => s + (state.portfolio[c.id] || 0) * (state.avgCost[c.id] || 0), 0);
+
+/* ── CANDLE DRAW ── */
+function drawCandles(canvas, candles, h, mini) {
+  if (!canvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.parentElement.clientWidth || 300;
+  canvas.width = w * dpr; canvas.height = h * dpr;
+  canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  const data = candles.slice(mini ? -14 : -30);
+  const n = data.length; if (!n) return;
+  const pL = mini ? 1 : 44, pR = 6, pT = mini ? 2 : 10, pB = mini ? 2 : 22;
+  const cW = w - pL - pR, cH = h - pT - pB;
+  const maxP = Math.max(...data.map(d => d.h));
+  const minP = Math.min(...data.map(d => d.l));
+  const range = maxP - minP || 1;
+  const yP = p => pT + cH - ((p - minP) / range) * cH;
+  const colW = cW / n;
+  const bW = Math.max(colW * .55, mini ? 1.5 : 3);
+  if (!mini) {
+    for (let i = 0; i <= 4; i++) {
+      const y = pT + (cH / 4) * i;
+      ctx.strokeStyle = 'rgba(255,255,255,.04)'; ctx.lineWidth = .5;
+      ctx.beginPath(); ctx.moveTo(pL, y); ctx.lineTo(w - pR, y); ctx.stroke();
+      ctx.fillStyle = 'rgba(107,122,141,.65)';
+      ctx.font = "10px 'Space Mono',monospace"; ctx.textAlign = 'right';
+      ctx.fillText(Math.round(maxP - (range / 4) * i).toLocaleString('es-MX'), pL - 3, y + 4);
+    }
+    const step = Math.ceil(n / 6);
+    const startW = Math.max(1, state.week - n + 1);
+    ctx.fillStyle = 'rgba(107,122,141,.65)'; ctx.font = "9px 'Space Mono',monospace";
+    for (let i = 0; i < n; i += step) {
+      ctx.textAlign = 'center';
+      ctx.fillText('S' + (startW + i), pL + i * colW + colW / 2, h - 4);
+    }
+    const ma = [];
+    for (let i = 0; i < n; i++) {
+      const sl = data.slice(Math.max(0, i - 9), i + 1);
+      ma.push(sl.reduce((s, d) => s + d.c, 0) / sl.length);
+    }
+    ctx.strokeStyle = '#ffd166'; ctx.lineWidth = 1; ctx.beginPath();
+    ma.forEach((v, i) => { const x = pL + i * colW + colW / 2; i === 0 ? ctx.moveTo(x, yP(v)) : ctx.lineTo(x, yP(v)); });
+    ctx.stroke();
+  }
+  data.forEach((d, i) => {
+    const x = pL + i * colW + colW / 2;
+    const isUp = d.c >= d.o;
+    const col = isUp ? '#26a69a' : '#ef5350';
+    const bTop = yP(Math.max(d.o, d.c));
+    const bBot = yP(Math.min(d.o, d.c));
+    const bH = Math.max(bBot - bTop, 1);
+    ctx.strokeStyle = col; ctx.lineWidth = mini ? .8 : 1;
+    ctx.beginPath(); ctx.moveTo(x, yP(d.h)); ctx.lineTo(x, bTop);
+    ctx.moveTo(x, bBot); ctx.lineTo(x, yP(d.l)); ctx.stroke();
+    ctx.fillStyle = col; ctx.fillRect(x - bW / 2, bTop, bW, bH);
+  });
+}
+
+/* ── INDEX CHARTS ── */
+let idxChart1 = null, idxChart2 = null;
+function makeIndexChart(id) {
+  const ctx = document.getElementById(id).getContext('2d');
+  return new Chart(ctx, {
+    type: 'line',
+    data: { labels: ['S1'], datasets: [{ data: [100], borderColor: '#00e5a0', borderWidth: 1.5, pointRadius: 2, pointBackgroundColor: '#00e5a0', tension: .3, fill: false }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { font: { size: 10, family: "'Space Mono'" }, color: '#6b7a8d', autoSkip: true, maxTicksLimit: 8 }, grid: { color: 'rgba(255,255,255,.04)' } },
+        y: { ticks: { font: { size: 10, family: "'Space Mono'" }, color: '#6b7a8d', callback: v => v.toFixed(0) }, grid: { color: 'rgba(255,255,255,.04)' } }
+      }
+    }
+  });
+}
+function updateIndexCharts() {
+  const labels = state.indexHistory.map((_, i) => 'S' + (i + 1));
+  [idxChart1, idxChart2].forEach(ch => {
+    if (!ch) return;
+    ch.data.labels = labels;
+    ch.data.datasets[0].data = state.indexHistory;
+    ch.update();
+  });
+}
+
+/\* ── LOGO IMG (Clearbit) ── \*/
+function onLogoErr(el){
+  var id=el.getAttribute('data-id');
+  var s=parseInt(el.getAttribute('data-s'));
+  var r=parseInt(el.getAttribute('data-r'));
+  var attempt=parseInt(el.getAttribute('data-attempt')||'0');
+  var co=COMPANIES.find(function(c){return c.id===id;});
+  var domain=co?co.domain:'';
+  attempt++;
+  el.setAttribute('data-attempt',String(attempt));
+  if(attempt===1){
+    el.src='https://www.google.com/s2/favicons?domain='+domain+'&sz=128';
+    return;
+  }
+  el.style.display='none';
+  var d=document.createElement('div');
+  d.textContent=id;
+  d.style.cssText='width:'+s+'px;height:'+s+'px;border-radius:'+r+'px;background:#1e2736;border:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-size:10px;color:#6b7a8d;font-family:monospace;flex-shrink:0;';
+  el.parentNode.insertBefore(d,el);
+}
+function logoByTicker(id,size){
+  var s=size||32, r=Math.round(s*0.22);
+  var co=COMPANIES.find(function(c){return c.id===id;});
+  var domain=co?co.domain:'';
+  return '<img src="https://www.google.com/s2/favicons?domain='+domain+'&sz=128" '
+    +'data-id="'+id+'" data-s="'+s+'" data-r="'+r+'" data-attempt="0" '
+    +'style="width:'+s+'px;height:'+s+'px;border-radius:'+r+'px;object-fit:contain;background:#fff;padding:3px;flex-shrink:0;" '
+    +'onerror="onLogoErr(this)" '
+    +'loading="lazy" alt="'+id+'">';
+}
+
+/* ── RENDER STATS ── */
+function renderStats() {
+  const pv = portVal(), pnl = pv - totalInv();
+  document.getElementById('cash-disp').textContent = fmt(state.cash);
+  document.getElementById('port-val').textContent = fmt(pv);
+  const el = document.getElementById('pnl');
+  el.textContent = (pnl >= 0 ? '+' : '-') + fmt(Math.abs(pnl));
+  el.className = 'stat-val' + (pnl > 0 ? ' up' : pnl < 0 ? ' down' : '');
+}
+
+/* ── TOP 3 ── */
+function renderTop3() {
+  const sorted = COMPANIES.map(c => {
+    const last = c.candles[c.candles.length - 1];
+    const prev = c.candles.length > 1 ? c.candles[c.candles.length - 2].c : last.o;
+    return { c, chg: (last.c - prev) / prev };
+  }).sort((a, b) => b.chg - a.chg).slice(0, 3);
+
+  document.getElementById('top3-grid').innerHTML = sorted.map((item, i) => `
+    <div class="top3-card">
+      <span class="top3-rank">#${i + 1}</span>
+      ${logoByTicker(item.c.id, 28)}
+      <div class="top3-info">
+        <div class="top3-name">${item.c.name}</div>
+        <div class="top3-country">${item.c.country}</div>
+      </div>
+      <span class="top3-badge">${pct(item.chg)}</span>
+    </div>
+  `).join('');
+}
+
+/* ── FEATURED PANEL ── */
+function renderFeatured() {
+  const panel = document.getElementById('featured-panel');
+  if (!state.featuredId) {
+    panel.innerHTML = '<div class="featured-empty"><strong>Sin empresa destacada</strong>Ve a <em>Empresas</em>, elige una y presiona ⭐ para destacarla aquí.</div>';
+    return;
+  }
+  const c = COMPANIES.find(x => x.id === state.featuredId);
+  const last = c.candles[c.candles.length - 1];
+  const prev = c.candles.length > 1 ? c.candles[c.candles.length - 2].c : last.o;
+  const chg = (last.c - prev) / prev;
+  const up = last.c >= last.o;
+
+  panel.innerHTML = `
+    <div class="chart-header">
+      <div style="display:flex;align-items:center;gap:10px;">
+        ${logoByTicker(c.id, 32)}
+        <div>
+          <div class="chart-company">${c.name} <span style="font-size:11px;color:var(--muted);font-weight:400">${c.country}</span></div>
+          <div class="chart-ohlc">
+            <span>A: <span id="feat-o">${fmtN(last.o)}</span></span>
+            <span>M: <span id="feat-h">${fmtN(last.h)}</span></span>
+            <span>m: <span id="feat-l">${fmtN(last.l)}</span></span>
+            <span>C: <span id="feat-c">${fmtN(last.c)}</span></span>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="chart-price ${up ? 'up' : 'down'}">${fmt(last.c)}</div>
+        <div class="chart-pct ${chg >= 0 ? 'up' : 'down'}">${pct(chg)} esta semana</div>
+      </div>
+    </div>
+    <div class="canvas-wrap"><canvas id="feat-canvas"></canvas></div>
+    <div class="trade-panel">
+      <div class="trade-row">
+        <span class="trade-label">Cantidad</span>
+        <input class="qty-input" type="number" id="qty-feat" min="1" value="1">
+        <button class="btn-buy" onclick="tradeAction('buy','feat')">Comprar</button>
+        <button class="btn-sell" onclick="tradeAction('sell','feat')">Vender</button>
+      </div>
+      <div class="trade-msg" id="msg-feat"></div>
+    </div>
+  `;
+  requestAnimationFrame(() => {
+    const canvas = document.getElementById('feat-canvas');
+    if (canvas) drawCandles(canvas, c.candles, 200, false);
+  });
+}
+
+/* ── COMPANIES GRID ── */
+function renderCompanies(filter) {
+  const q = (filter || '').toLowerCase();
+  const list = q
+    ? COMPANIES.filter(c => c.name.toLowerCase().includes(q) || c.id.toLowerCase().includes(q) || c.country.toLowerCase().includes(q) || c.sector.toLowerCase().includes(q))
+    : COMPANIES;
+
+  document.getElementById('companies-grid').innerHTML = list.map(c => {
+    const last = c.candles[c.candles.length - 1];
+    const prev = c.candles.length > 1 ? c.candles[c.candles.length - 2].c : last.o;
+    const chg = (last.c - prev) / prev;
+    const up = chg > .0005, dn = chg < -.0005;
+    const isSelected = state.selectedDetId === c.id;
+    const isStarred = state.featuredId === c.id;
+    return `
+      <div class="co-card${isSelected ? ' selected' : ''}" id="cocard-${c.id}">
+        <div class="co-top">
+          ${logoByTicker(c.id, 32)}
+          <div>
+            <div class="co-name">${c.name}</div>
+            <div class="co-ticker">${c.id}</div>
+          </div>
+        </div>
+        <div class="co-meta">
+          <span class="co-country">${c.country}</span>
+          <span class="badge ${up ? 'up' : dn ? 'down' : 'flat'}">${pct(chg)}</span>
+        </div>
+        <div class="co-price ${up ? 'up' : dn ? 'down' : ''}">${fmt(last.c)}</div>
+        <div class="co-actions">
+          <button class="btn-star${isStarred ? ' starred' : ''}" onclick="toggleStar('${c.id}')" title="Destacar en Home">${isStarred ? '⭐' : '☆'}</button>
+          <button class="btn-view" onclick="openDetail('${c.id}')">Ver gráfica</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function filterCompanies() {
+  renderCompanies(document.getElementById('search-input').value);
+}
+
+function toggleStar(id) {
+  state.featuredId = state.featuredId === id ? null : id;
+  renderCompanies(document.getElementById('search-input').value);
+  renderFeatured();
+}
+
+function openDetail(id) {
+  state.selectedDetId = id;
+  const c = COMPANIES.find(x => x.id === id);
+  const last = c.candles[c.candles.length - 1];
+  const prev = c.candles.length > 1 ? c.candles[c.candles.length - 2].c : last.o;
+  const chg = (last.c - prev) / prev;
+  const up = last.c >= last.o;
+
+  document.getElementById('det-name').textContent = c.name + ' (' + c.id + ') — ' + c.country;
+  document.getElementById('det-o').textContent = fmtN(last.o);
+  document.getElementById('det-h').textContent = fmtN(last.h);
+  document.getElementById('det-l').textContent = fmtN(last.l);
+  document.getElementById('det-c').textContent = fmtN(last.c);
+  const pEl = document.getElementById('det-price');
+  pEl.textContent = fmt(last.c); pEl.className = 'chart-price ' + (up ? 'up' : 'down');
+  const pcEl = document.getElementById('det-pct');
+  pcEl.textContent = pct(chg) + ' esta semana'; pcEl.className = 'chart-pct ' + (chg >= 0 ? 'up' : 'down');
+
+  const detail = document.getElementById('co-detail');
+  detail.className = 'co-detail show';
+  detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  renderCompanies(document.getElementById('search-input').value);
+  requestAnimationFrame(() => {
+    const canvas = document.getElementById('det-canvas');
+    if (canvas) drawCandles(canvas, c.candles, 200, false);
+  });
+}
+
+/* ── TRADE ── */
+function tradeAction(type, src) {
+  const qtyId = src === 'feat' ? 'qty-feat' : 'qty-det';
+  const msgId = src === 'feat' ? 'msg-feat' : 'msg-det';
+  const compId = src === 'feat' ? state.featuredId : state.selectedDetId;
+  const msgEl = document.getElementById(msgId);
+  if (!compId) { msgEl.textContent = 'Selecciona una empresa.'; msgEl.className = 'trade-msg err'; return; }
+  const c = COMPANIES.find(x => x.id === compId);
+  const qty = parseInt(document.getElementById(qtyId).value) || 0;
+  if (qty <= 0) { msgEl.textContent = 'Cantidad inválida.'; msgEl.className = 'trade-msg err'; return; }
+  const price = curPrice(c);
+  if (type === 'buy') {
+    const cost = price * qty;
+    if (cost > state.cash) { msgEl.textContent = 'Sin suficiente efectivo.'; msgEl.className = 'trade-msg err'; return; }
+    const prev = state.portfolio[c.id] || 0;
+    state.avgCost[c.id] = (prev * (state.avgCost[c.id] || 0) + cost) / (prev + qty);
+    state.portfolio[c.id] = prev + qty;
+    state.cash -= cost;
+    msgEl.textContent = `Compraste ${qty} acc. de ${c.id} por ${fmt(cost)}.`;
+    msgEl.className = 'trade-msg ok';
+  } else {
+    const owned = state.portfolio[c.id] || 0;
+    if (qty > owned) { msgEl.textContent = `Solo tienes ${owned} acc. de ${c.id}.`; msgEl.className = 'trade-msg err'; return; }
+    const rev = price * qty;
+    state.portfolio[c.id] = owned - qty;
+    if (state.portfolio[c.id] === 0) state.avgCost[c.id] = 0;
+    state.cash += rev;
+    msgEl.textContent = `Vendiste ${qty} acc. de ${c.id} por ${fmt(rev)}.`;
+    msgEl.className = 'trade-msg ok';
+  }
+  renderStats(); renderPortfolio(); updateIndexCharts();
+  saveUserProgress();
+}
+
+/* ── PORTFOLIO ── */
+function renderPortfolio() {
+  const tbody = document.getElementById('port-body');
+  const rows = COMPANIES.filter(c => (state.portfolio[c.id] || 0) > 0);
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="5"><div class="empty-port">— sin posiciones —</div></td></tr>'; return; }
+  tbody.innerHTML = rows.map(c => {
+    const sh = state.portfolio[c.id], avg = state.avgCost[c.id], cur = curPrice(c);
+    const gain = (cur - avg) * sh, gp = ((cur - avg) / avg * 100).toFixed(1);
+    return `<tr>
+      <td>${c.name} <span style="font-size:10px;color:var(--muted)">${c.country}</span></td>
+      <td>${sh}</td><td>${fmt(avg)}</td><td>${fmt(cur)}</td>
+      <td class="${gain >= 0 ? 'gain-up' : 'gain-dn'}">${gain >= 0 ? '+' : '-'}${fmt(Math.abs(gain))} (${gp}%)</td>
+    </tr>`;
+  }).join('');
+}
+
+/* ── NEXT WEEK ── */
+function nextWeek() {
+  state.week++;
+  document.getElementById('week-num').textContent = state.week;
+  const ev = EVENTS[Math.floor(Math.random() * EVENTS.length)];
+  const eb = document.getElementById('event-box');
+  eb.className = 'event-box'; void eb.offsetWidth;
+  if (ev.rare && ev.tag.includes('CRISIS') || ev.rare && ev.tag.includes('PANDEMIA') || ev.rare && ev.tag.includes('NUCLEAR') || ev.rare && ev.tag.includes('HIPERINFLACIÓN') || ev.rare && ev.tag.includes('DESASTRE') || ev.rare && ev.tag.includes('BANCARIA')) {
+    eb.className = 'event-box show extreme';
+  } else if (ev.rare) {
+    eb.className = 'event-box show rare';
+  } else {
+    eb.className = 'event-box show';
+  }
+  document.getElementById('event-title').textContent = ev.title;
+  document.getElementById('event-text').textContent = ev.text;
+
+  const intensity = ev.intensity || 0.06;
+  COMPANIES.forEach(c => {
+    let mod = 0;
+    let forceDir = 0;
+    const inPos = ev.effect.pos.includes(c.sector);
+    const inNeg = ev.effect.neg.includes(c.sector);
+    if (inPos) { mod += intensity + Math.random() * intensity * 0.5; forceDir = 1; }
+    if (inNeg) { mod -= intensity + Math.random() * intensity * 0.5; forceDir = -1; }
+    // Specific company overrides always win — full control
+    if (ev.specific && ev.specific[c.id] !== undefined) {
+      const sp = ev.specific[c.id];
+      mod = sp; // specific completely overrides sector mod
+      forceDir = sp > 0 ? 1 : sp < 0 ? -1 : 0;
+    }
+    c.candles.push(genCandle(curPrice(c), c.vol, mod, forceDir));
+  });
+
+  const total = state.cash + portVal();
+  state.indexHistory.push(+(total / INITIAL_CASH * 100).toFixed(1));
+
+  renderTop3(); renderStats(); renderPortfolio(); updateIndexCharts();
+  renderCompanies(document.getElementById('search-input').value);
+  if (state.featuredId) renderFeatured();
+  if (state.selectedDetId) openDetail(state.selectedDetId);
+  document.getElementById('week-num').textContent = state.week;
+  saveUserProgress();
+}
+
+/* ── NAV ── */
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('sec-' + id).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+
+/* ── MODAL ── */
+var checked = false;
+function toggleCheck() {
+  checked = !checked;
+  var box = document.getElementById('chk-box');
+  var btn = document.getElementById('accept-btn');
+  if (checked) {
+    box.style.background = '#00e5a0'; box.style.borderColor = '#00e5a0';
+    box.innerHTML = '<svg width="10" height="8" viewBox="0 0 10 8"><polyline points="1,4 4,7 9,1" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    btn.disabled = false; btn.style.background = '#00e5a0'; btn.style.cursor = 'pointer';
+  } else {
+    box.style.background = 'transparent'; box.style.borderColor = '#6b7a8d';
+    box.innerHTML = ''; btn.disabled = true; btn.style.background = '#6b7a8d'; btn.style.cursor = 'not-allowed';
+  }
+}
+function acceptModal() {
+  if (!checked) return;
+  var o = document.getElementById('modal-overlay');
+  o.style.transition = 'opacity .4s ease'; o.style.opacity = '0';
+  setTimeout(() => o.style.display = 'none', 400);
+}
+
+window.addEventListener('resize', () => {
+  if (state.featuredId) renderFeatured();
+  if (state.selectedDetId) openDetail(state.selectedDetId);
+});
+
+/* ── INIT ── */
+idxChart1 = makeIndexChart('index-canvas');
+idxChart2 = makeIndexChart('index-canvas-2');
+renderCompanies();
+renderStats();
+renderPortfolio();
+renderFeatured();
+
+/* ── AUTH SYSTEM ── */
+var currentUser = null;
+var authMode = 'login';
+
+function switchTab(mode) {
+  authMode = mode;
+  var isReg = mode === 'register';
+  document.getElementById('tab-login').style.background = isReg ? 'transparent' : '#161e2a';
+  document.getElementById('tab-login').style.color = isReg ? '#6b7a8d' : '#e8edf5';
+  document.getElementById('tab-register').style.background = isReg ? '#161e2a' : 'transparent';
+  document.getElementById('tab-register').style.color = isReg ? '#e8edf5' : '#6b7a8d';
+  document.getElementById('name-field').style.display = isReg ? 'block' : 'none';
+  document.getElementById('auth-btn').textContent = isReg ? 'Crear cuenta' : 'Iniciar sesión';
+  document.getElementById('auth-error').textContent = '';
+}
+
+function getUsers() {
+  try { return JSON.parse(localStorage.getItem('orbix_users') || '{}'); } catch(e) { return {}; }
+}
+
+function saveUsers(users) {
+  localStorage.setItem('orbix_users', JSON.stringify(users));
+}
+
+function hashPass(pass) {
+  var h = 0;
+  for (var i = 0; i < pass.length; i++) { h = Math.imul(31, h) + pass.charCodeAt(i) | 0; }
+  return h.toString(36);
+}
+
+function updateUsersList() {
+  var users = getUsers();
+  var keys = Object.keys(users);
+  var el = document.getElementById('users-list');
+  if (!keys.length) { el.textContent = 'Ninguna aún'; return; }
+  el.innerHTML = keys.map(function(k) {
+    return '<span style="display:inline-block;background:#161e2a;border-radius:4px;padding:2px 8px;margin:2px;">' + k + '</span>';
+  }).join('');
+}
+
+function authAction() {
+  var user = (document.getElementById('auth-user').value || '').trim().toLowerCase();
+  var pass = document.getElementById('auth-pass').value || '';
+  var name = (document.getElementById('auth-name').value || '').trim();
+  var errEl = document.getElementById('auth-error');
+  errEl.textContent = '';
+
+  if (!user) { errEl.textContent = 'Ingresa un usuario.'; return; }
+  if (pass.length < 4) { errEl.textContent = 'La contraseña debe tener al menos 4 caracteres.'; return; }
+
+  var users = getUsers();
+  var hashed = hashPass(pass);
+
+  if (authMode === 'register') {
+    if (!name) { errEl.textContent = 'Ingresa tu nombre.'; return; }
+    if (users[user]) { errEl.textContent = 'Ese usuario ya existe.'; return; }
+    users[user] = { name: name, pass: hashed, created: Date.now() };
+    saveUsers(users);
+    loginUser(user, name);
+  } else {
+    if (!users[user]) { errEl.textContent = 'Usuario no encontrado.'; return; }
+    if (users[user].pass !== hashed) { errEl.textContent = 'Contraseña incorrecta.'; return; }
+    loginUser(user, users[user].name);
+  }
+}
+
+function loginUser(user, name) {
+  currentUser = user;
+  localStorage.setItem('orbix_session', JSON.stringify({ user: user, name: name }));
+  loadUserProgress(user);
+  document.getElementById('auth-overlay').style.opacity = '0';
+  document.getElementById('auth-overlay').style.transition = 'opacity .3s';
+  setTimeout(function() { document.getElementById('auth-overlay').style.display = 'none'; }, 300);
+  // Show username in header
+  var badge = document.getElementById('user-badge');
+  if (badge) badge.textContent = name;
+}
+
+function loadUserProgress(user) {
+  var key = 'orbix_progress_' + user;
+  var saved = localStorage.getItem(key);
+  if (!saved) return;
+  try {
+    var data = JSON.parse(saved);
+    state.cash = data.cash;
+    state.week = data.week;
+    state.portfolio = data.portfolio;
+    state.avgCost = data.avgCost;
+    state.featuredId = data.featuredId || null;
+    state.indexHistory = data.indexHistory || [100];
+    // Restore candle history
+    if (data.candles) {
+      COMPANIES.forEach(function(c) {
+        if (data.candles[c.id]) c.candles = data.candles[c.id];
+      });
+    }
+    document.getElementById('week-num').textContent = state.week;
+    renderStats(); renderPortfolio(); updateIndexCharts();
+    renderCompanies(); renderFeatured(); renderTop3();
+  } catch(e) { console.log('Error loading progress:', e); }
+}
+
+function saveUserProgress() {
+  if (!currentUser) return;
+  var key = 'orbix_progress_' + currentUser;
+  var candles = {};
+  COMPANIES.forEach(function(c) { candles[c.id] = c.candles.slice(-50); });
+  var data = {
+    cash: state.cash,
+    week: state.week,
+    portfolio: state.portfolio,
+    avgCost: state.avgCost,
+    featuredId: state.featuredId,
+    indexHistory: state.indexHistory,
+    candles: candles,
+    savedAt: Date.now()
+  };
+  localStorage.setItem(key, JSON.stringify(data));
+}
+
+function logoutUser() {
+  saveUserProgress();
+  currentUser = null;
+  localStorage.removeItem('orbix_session');
+  location.reload();
+}
+
+// Check existing session on load
+function checkSession() {
+  updateUsersList();
+  var session = localStorage.getItem('orbix_session');
+  if (session) {
+    try {
+      var s = JSON.parse(session);
+      loginUser(s.user, s.name);
+    } catch(e) {
+      localStorage.removeItem('orbix_session');
+    }
+  }
+}
+
+// Enter key support
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && document.getElementById('auth-overlay') &&
+      document.getElementById('auth-overlay').style.display !== 'none') {
+    authAction();
+  }
+});
+
+checkSession();
+
+</script>
+</body>
+</html>
